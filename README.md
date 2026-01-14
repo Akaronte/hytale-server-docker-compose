@@ -268,3 +268,65 @@ Este proyecto es solo una guía de configuración. Hytale es propiedad de Hypixe
 ---
 
 **¿Problemas?** Abre un issue o consulta la [documentación oficial](https://support.hytale.com/).
+
+sudo groupadd --system hytale
+sudo useradd --system --gid hytale --home /opt/hytale --shell /usr/sbin/nologin hytale
+usermod -s /bin/bash hytale
+
+curl -fsSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip
+unzip hytale-downloader.zip
+
+./hytale-downloader-linux-amd64
+
+
+
+# 1. Instalar dependencias
+sudo apt update
+sudo apt install -y wget tar
+
+# 2. Crear carpeta destino
+sudo mkdir -p /opt/java
+
+# 3. Descargar Temurin OpenJDK 25 (ajusta la URL si hay una versión más reciente)
+wget -O /tmp/openjdk-25.tar.gz https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.1+8/OpenJDK25U-jdk_x64_linux_hotspot_25.0.1_8.tar.gz
+
+# 4. Extraer en /opt/java/openjdk
+sudo tar -xzf /tmp/openjdk-25.tar.gz -C /opt/java
+sudo mv /opt/java/jdk-25.0.1+8 /opt/java/openjdk
+
+# 5. Añadir a PATH (opcional, para la sesión actual)
+export PATH=/opt/java/openjdk/bin:$PATH
+
+# 6. Verificar instalación
+java --version
+
+
+/opt/java/openjdk/bin/java -Xms4G -Xmx4G -XX:AOTCache=/opt/hytale/Server/HytaleServer.aot -jar /opt/hytale/Server/HytaleServer.jar --assets /opt/hytale/Assets.zip --bind 0.0.0.0:5520
+
+
+su - hytale -s /bin/bash -c "/opt/java/openjdk/bin/java -Xms4G -Xmx4G -XX:AOTCache=/opt/hytale/Server/HytaleServer.aot -jar /opt/hytale/Server/HytaleServer.jar --assets /opt/hytale/Assets.zip --bind 0.0.0.0:5520"
+
+```
+[Unit]
+Description=Hytale Dedicated Server
+After=network.target
+
+[Service]
+Type=simple
+User=hytale
+Group=hytale
+WorkingDirectory=/opt/hytale
+ExecStart=/opt/java/openjdk/bin/java -Xms4G -Xmx4G -XX:AOTCache=/opt/hytale/Server/HytaleServer.aot -jar /opt/hytale/Server/HytaleServer.jar --assets /opt/hytale/Assets.zip --bind 0.0.0.0:5520
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
+```
+
+/auth login device
+
+/auth persistence EnEncrypted
+
+/auth status

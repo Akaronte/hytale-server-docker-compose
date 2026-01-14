@@ -1,0 +1,16 @@
+[Unit]
+Description=Hytale Dedicated Server
+After=network.target
+
+[Service]
+Type=simple
+User=hytale
+Group=hytale
+WorkingDirectory=/opt/hytale
+ExecStart=/opt/java/openjdk/bin/java -Xms4G -Xmx4G -XX:AOTCache=/opt/hytale/Server/HytaleServer.aot -jar /opt/hytale/Server/HytaleServer.jar --assets /opt/hytale/Assets.zip --bind 0.0.0.0:5520
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

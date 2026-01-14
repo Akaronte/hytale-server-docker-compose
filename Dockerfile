@@ -41,10 +41,12 @@ LABEL version="1.0"
 ENV JAVA_OPTS="-Xms4G -Xmx4G" \
     SERVER_PORT=5520 \
     ASSETS_PATH="/server/Assets.zip" \
-    AOT_CACHE="/server/HytaleServer.aot"
+    USE_AOT="false" \
+    PUID=1000 \
+    PGID=1000
 
-# Create server user for security (non-root)
-RUN groupadd -r hytale && useradd -r -g hytale hytale
+# Create server user with configurable UID/GID for volume permissions
+RUN groupadd -g ${PGID} hytale && useradd -u ${PUID} -g hytale hytale
 
 # Create server directories
 RUN mkdir -p /server/mods /server/universe /server/logs /server/.cache \
@@ -64,17 +66,32 @@ COPY --chown=hytale:hytale Assets.zip /server/
 # Hytale uses QUIC protocol over UDP, NOT TCP
 EXPOSE ${SERVER_PORT}/udp
 
-# Switch to non-root user
-USER hytale
-
-# Volume mounts for persistent data
-# VOLUME ["/server/universe", "/server/logs", "/server/mods", "/server/.cache"]
-
 # Health check - Note: Hytale uses QUIC/UDP, standard HTTP checks won't work
-# Consider using a plugin like Nitrado:Query for HTTP status endpoint
 HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=3 \
     CMD test -f /server/universe/config.json || exit 1
 
-# Default command to start the server
-# Uses AOT cache for faster startup (JEP-514)
-ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -XX:AOTCache=${AOT_CACHE} -jar HytaleServer.jar --assets ${ASSETS_PATH} --bind 0.0.0.0:${SERVER_PORT}"]
+# Create entrypoint script to handle permissions and AOT cache
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Fix permissions on mounted volumes\n\
+chown -R hytale:hytale /server/universe /server/logs /server/mods /server/.cache 2>/dev/null || true\n\
+\n\
+# Build Java command\n\
+JAVA_CMD="java ${JAVA_OPTS}"\n\
+\n\
+# Add AOT cache only if enabled and file exists\n\
+if [ "${USE_AOT}" = "true" ] && [ -f "/server/HytaleServer.aot" ]; then\n\
+    JAVA_CMD="${JAVA_CMD} -XX:AOTCache=/server/HytaleServer.aot"\n\
+fi\n\
+\n\
+# Start server as hytale user\n\
+exec su-exec hytale ${JAVA_CMD} -jar HytaleServer.jar --assets ${ASSETS_PATH} --bind 0.0.0.0:${SERVER_PORT}\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+# Install su-exec for running as non-root
+RUN apt-get update && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/sbin/gosu /usr/local/bin/su-exec
+
+ENTRYPOINT ["/entrypoint.sh"]
