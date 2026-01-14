@@ -1,0 +1,45 @@
+# =============================================================================
+# Hytale Server - Docker Compose
+# =============================================================================
+
+services:
+  hytale-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hytale-server
+    restart: unless-stopped
+    
+    # Configuración de recursos
+    environment:
+      - JAVA_OPTS=-Xms4G -Xmx4G
+      - SERVER_PORT=5520
+      - ASSETS_PATH=/server/Assets.zip
+      - AOT_CACHE=/server/HytaleServer.aot
+    
+    # Puerto UDP para QUIC (Hytale NO usa TCP)
+    ports:
+      - "5520:5520/udp"
+    
+    # Volúmenes montados en la ruta actual
+    volumes:
+      - ./universe:/server/universe      # Datos del mundo y jugadores
+      - ./logs:/server/logs              # Archivos de log
+      - ./mods:/server/mods              # Mods instalados
+      - ./cache:/server/.cache           # Caché de archivos optimizados
+      - ./config.json:/server/config.json:rw           # Configuración del servidor
+      - ./permissions.json:/server/permissions.json:rw # Permisos
+      - ./whitelist.json:/server/whitelist.json:rw     # Lista blanca
+      - ./bans.json:/server/bans.json:rw               # Baneos
+    
+    # Límites de recursos (ajustar según necesidad)
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 4G
+    
+    # Para acceder a la consola del servidor (autenticación inicial)
+    stdin_open: true
+    tty: true

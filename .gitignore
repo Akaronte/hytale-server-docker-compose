@@ -1,0 +1,25 @@
+# =============================================================================
+# Hytale Server - Git Ignore
+# =============================================================================
+
+# Archivos del servidor (muy grandes - el usuario debe obtenerlos)
+# Ver README.md para instrucciones
+Server/
+Assets.zip
+
+# Datos del servidor (generados en runtime)
+universe/
+logs/
+cache/
+mods/
+.cache/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
